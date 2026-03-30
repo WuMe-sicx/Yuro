@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:get_it/get_it.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:asmrapp/common/constants/strings.dart';
 import 'package:asmrapp/core/theme/theme_controller.dart';
 import 'package:asmrapp/core/platform/wakelock_controller.dart';
@@ -11,8 +13,21 @@ import 'package:asmrapp/screens/settings/widgets/settings_group.dart';
 import 'package:asmrapp/screens/settings/widgets/settings_tile.dart';
 import 'package:asmrapp/screens/settings/widgets/settings_theme.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  late final Future<PackageInfo> _packageInfoFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _packageInfoFuture = PackageInfo.fromPlatform();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +56,17 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _openUrl(BuildContext context, String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(Strings.cannotOpenLink)),
+        );
+      }
+    }
   }
 
   Widget _appearanceSection() {
@@ -161,29 +187,42 @@ class SettingsScreen extends StatelessWidget {
   }
 
   Widget _aboutSection(BuildContext context) {
-    // TODO: add package_info_plus dependency for real version
-    const version = '1.0.0';
-    return SettingsGroup(
-      header: Strings.about,
-      children: [
-        const SettingsTile.navigation(
-          title: Strings.versionInfo,
-          leading: Icons.info_outline,
-          value: version,
-        ),
-        SettingsTile.navigation(
-          title: Strings.openSourceLicenses,
-          leading: Icons.description_outlined,
-          onTap: () => showLicensePage(context: context),
-        ),
-        SettingsTile.navigation(
-          title: Strings.feedback,
-          leading: Icons.feedback_outlined,
-          onTap: () {
-            // TODO: implement feedback link
-          },
-        ),
-      ],
+    return FutureBuilder<PackageInfo>(
+      future: _packageInfoFuture,
+      builder: (context, snapshot) {
+        final version = snapshot.hasData
+            ? '${snapshot.data!.version} (${snapshot.data!.buildNumber})'
+            : '...';
+        return SettingsGroup(
+          header: Strings.about,
+          children: [
+            SettingsTile.navigation(
+              title: Strings.versionInfo,
+              leading: Icons.info_outline,
+              value: version,
+            ),
+            SettingsTile.navigation(
+              title: Strings.openSourceLicenses,
+              leading: Icons.description_outlined,
+              onTap: () => showLicensePage(
+                context: context,
+                applicationName: Strings.appName,
+                applicationVersion: snapshot.data?.version,
+              ),
+            ),
+            SettingsTile.navigation(
+              title: Strings.feedback,
+              leading: Icons.feedback_outlined,
+              onTap: () => _openUrl(context, Strings.feedbackUrl),
+            ),
+            SettingsTile.navigation(
+              title: Strings.sourceCode,
+              leading: Icons.code_outlined,
+              onTap: () => _openUrl(context, Strings.repoUrl),
+            ),
+          ],
+        );
+      },
     );
   }
 }

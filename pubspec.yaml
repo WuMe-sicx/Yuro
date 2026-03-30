@@ -55,6 +55,7 @@ dependencies:
   marquee: ^2.3.0
   wakelock_plus: ^1.2.8
   url_launcher: ^6.3.0
+  package_info_plus: ^8.0.0
   sqflite: ^2.3.0
   file_picker: ^8.0.0
 
