@@ -106,13 +106,13 @@ class _MainScreenState extends State<MainScreen> {
         builder: (context) {
           // 根据当前页面获取对应的总数
           final totalCount = _currentIndex == 0
-              ? context.watch<FavoritesViewModel>().totalCount
+              ? context.select<FavoritesViewModel, int?>((vm) => vm.totalCount)
               : _currentIndex == 1
-                  ? context.watch<HomeViewModel>().pagination?.totalCount
+                  ? context.select<HomeViewModel, int?>((vm) => vm.pagination?.totalCount)
                   : _currentIndex == 2
-                      ? context.watch<RecommendViewModel>().pagination?.totalCount
+                      ? context.select<RecommendViewModel, int?>((vm) => vm.pagination?.totalCount)
                       : _currentIndex == 3
-                          ? context.watch<PopularViewModel>().pagination?.totalCount
+                          ? context.select<PopularViewModel, int?>((vm) => vm.pagination?.totalCount)
                           : null;
 
           // 构建标题文本

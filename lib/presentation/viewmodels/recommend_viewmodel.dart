@@ -28,7 +28,6 @@ class RecommendViewModel extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       _hasSubtitle = prefs.getBool(_subtitleFilterKey) ?? false;
-      notifyListeners();
       // 首次加载时应用筛选状态
       loadRecommendations(refresh: true);
     } catch (e) {

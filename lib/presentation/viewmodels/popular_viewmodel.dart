@@ -9,9 +9,7 @@ class PopularViewModel extends PaginatedWorksViewModel {
   bool _hasSubtitle = false;
   bool _filterPanelExpanded = false;
 
-  PopularViewModel() : super(GetIt.I<ApiService>()) {
-    _loadFilterState();
-  }
+  PopularViewModel() : super(GetIt.I<ApiService>());
 
   @override
   Future<void> onInit() async {
@@ -25,16 +23,6 @@ class PopularViewModel extends PaginatedWorksViewModel {
       notifyListeners();
     } catch (e) {
       AppLogger.error('加载字幕筛选状态失败', e);
-    }
-  }
-
-  Future<void> _loadFilterState() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _hasSubtitle = prefs.getBool(_subtitleFilterKey) ?? false;
-      notifyListeners();
-    } catch (e) {
-      AppLogger.error('加载筛选状态失败', e);
     }
   }
 

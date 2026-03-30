@@ -9,7 +9,14 @@ import 'mini_player_cover.dart';
 
 class MiniPlayer extends StatelessWidget {
   static const height = 48.0;
-  
+  static const _boxShadow = [
+    BoxShadow(
+      color: Color(0x1A000000), // Colors.black at 10% opacity
+      blurRadius: 4,
+      offset: Offset(0, -1),
+    ),
+  ];
+
   const MiniPlayer({super.key});
 
   @override
@@ -66,13 +73,7 @@ class MiniPlayer extends StatelessWidget {
             height: height,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -1),
-                ),
-              ],
+              boxShadow: _boxShadow,
             ),
             child: Column(
               children: [

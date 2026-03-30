@@ -1,4 +1,6 @@
 import 'package:asmrapp/core/theme/app_animations.dart';
+import 'package:asmrapp/data/models/works/work.dart';
+import 'package:asmrapp/presentation/models/filter_state.dart';
 import 'package:asmrapp/widgets/filter/filter_panel.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -24,7 +26,6 @@ class _HomeContentState extends State<HomeContent>
   @override
   void initState() {
     super.initState();
-    // 添加滚动监听
     _scrollController.addListener(_onScroll);
   }
 
@@ -36,71 +37,81 @@ class _HomeContentState extends State<HomeContent>
   }
 
   void _onScroll() {
-    // 当滚动开始时收起筛选面板
-    if (_scrollController.position.pixels !=
-        _scrollController.position.minScrollExtent) {
-      final viewModel = context.read<HomeViewModel>();
-      if (viewModel.filterPanelExpanded) {
-        viewModel.closeFilterPanel(); // 需要在 ViewModel 中添加这个方法
-      }
-    }
+    if (_scrollController.position.pixels == _scrollController.position.minScrollExtent) return;
+    context.read<HomeViewModel>().closeFilterPanel();
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Consumer<HomeViewModel>(
-      builder: (context, viewModel, child) {
-        return Stack(
-          children: [
-            // 作品列表
-            EnhancedWorkGridView(
-              works: viewModel.works,
-              isLoading: viewModel.isLoading,
-              error: viewModel.error,
-              currentPage: viewModel.currentPage,
-              totalPages: viewModel.totalPages,
-              onPageChanged: (page) => viewModel.loadPage(page),
-              onRefresh: () => viewModel.refresh(),
-              onRetry: () => viewModel.refresh(),
+    return Stack(
+      children: [
+        // Grid: only rebuilds when list data changes
+        Selector<HomeViewModel, ({List<Work> works, bool isLoading, String? error, int currentPage, int? totalPages})>(
+          selector: (_, vm) => (
+            works: vm.works,
+            isLoading: vm.isLoading,
+            error: vm.error,
+            currentPage: vm.currentPage,
+            totalPages: vm.totalPages,
+          ),
+          builder: (context, data, child) {
+            return EnhancedWorkGridView(
+              works: data.works,
+              isLoading: data.isLoading,
+              error: data.error,
+              currentPage: data.currentPage,
+              totalPages: data.totalPages,
+              onPageChanged: (page) => context.read<HomeViewModel>().loadPage(page),
+              onRefresh: () => context.read<HomeViewModel>().refresh(),
+              onRetry: () => context.read<HomeViewModel>().refresh(),
               layoutStrategy: _layoutStrategy,
               scrollController: _scrollController,
+            );
+          },
+        ),
+        // Filter panel: only rebuilds when filter state changes
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Selector<HomeViewModel, ({bool expanded, bool hasSubtitle, FilterState filterState})>(
+            selector: (_, vm) => (
+              expanded: vm.filterPanelExpanded,
+              hasSubtitle: vm.hasSubtitle,
+              filterState: vm.filterState,
             ),
-            // 筛选面板
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: AnimatedSlide(
+            builder: (context, data, child) {
+              return AnimatedSlide(
                 duration: AppAnimations.short,
                 curve: AppAnimations.standard,
-                offset: Offset(0, viewModel.filterPanelExpanded ? 0 : -1),
+                offset: Offset(0, data.expanded ? 0 : -1),
                 child: Container(
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.surface,
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Color(0x0D000000),
                         blurRadius: 8,
                         spreadRadius: 1,
-                        offset: const Offset(0, 1),
+                        offset: Offset(0, 1),
                       ),
                     ],
                   ),
                   child: FilterPanel(
-                    hasSubtitle: viewModel.hasSubtitle,
-                    onSubtitleChanged: viewModel.updateSubtitle,
-                    orderField: viewModel.filterState.orderField,
-                    isDescending: viewModel.filterState.isDescending,
-                    onOrderFieldChanged: viewModel.updateOrderField,
-                    onSortDirectionChanged: viewModel.updateSortDirection,
+                    hasSubtitle: data.hasSubtitle,
+                    onSubtitleChanged: context.read<HomeViewModel>().updateSubtitle,
+                    orderField: data.filterState.orderField,
+                    isDescending: data.filterState.isDescending,
+                    onOrderFieldChanged: context.read<HomeViewModel>().updateOrderField,
+                    onSortDirectionChanged: context.read<HomeViewModel>().updateSortDirection,
                   ),
                 ),
-              ),
-            ),
-          ],
-        );
-      },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
