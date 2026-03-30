@@ -1,13 +1,17 @@
 import 'package:asmrapp/data/models/auth/auth_resp/auth_resp.dart';
+import 'package:asmrapp/data/services/exceptions/network_exception.dart';
 import 'package:dio/dio.dart';
 import '../../utils/logger.dart';
 
 class AuthService {
   final Dio _dio;
 
-  AuthService() 
+  AuthService()
     : _dio = Dio(BaseOptions(
         baseUrl: 'https://api.asmr.one/api',
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 30),
+        sendTimeout: const Duration(seconds: 15),
       ));
 
   Future<AuthResp> login(String name, String password) async {
@@ -33,7 +37,7 @@ class AuthService {
     } on DioException catch (e) {
       AppLogger.error('登录请求失败', e);
       AppLogger.error('错误详情: ${e.response?.data}');
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e) {
       AppLogger.error('登录失败', e);
       throw Exception('登录失败: $e');

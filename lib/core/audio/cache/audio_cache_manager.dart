@@ -30,8 +30,9 @@ class AudioCacheManager {
       AppLogger.debug('[$fileName] 创建新的缓存源');
       return _createCachingSource(url, cacheFile);
       
-    } catch (e) {
-      AppLogger.error('创建缓存音频源失败,使用非缓存源', e);
+    } catch (e, stackTrace) {
+      AppLogger.warning('创建缓存音频源失败,降级为流式播放: $url');
+      AppLogger.error('缓存源创建异常', e, stackTrace);
       return ProgressiveAudioSource(Uri.parse(url));
     }
   }
@@ -96,7 +97,7 @@ class AudioCacheManager {
   static AudioSource _createCachingSource(String url, File cacheFile) {
     return LockCachingAudioSource(
       Uri.parse(url),
-      cacheFile: cacheFile
+      cacheFile: cacheFile,
     );
   }
 

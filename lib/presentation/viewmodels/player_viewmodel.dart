@@ -9,6 +9,7 @@ import 'package:asmrapp/core/audio/models/subtitle.dart';
 import 'dart:async';
 import 'package:asmrapp/core/subtitle/subtitle_loader.dart';
 import 'package:asmrapp/core/audio/events/playback_event_hub.dart';
+import 'package:just_audio/just_audio.dart';
 
 class PlayerViewModel extends ChangeNotifier {
   final IAudioPlayerService _audioService;
@@ -17,6 +18,8 @@ class PlayerViewModel extends ChangeNotifier {
   final _subtitleLoader = SubtitleLoader();
 
   bool _isPlaying = false;
+  bool _isBuffering = false;
+  String? _errorMessage;
   Duration? _position;
   Duration? _duration;
   Subtitle? _currentSubtitle;
@@ -44,6 +47,8 @@ class PlayerViewModel extends ChangeNotifier {
           _isPlaying = event.state.playing;
           _position = event.position;
           _duration = event.duration;
+          _isBuffering = event.state.processingState == ProcessingState.buffering ||
+                         event.state.processingState == ProcessingState.loading;
           notifyListeners();
         },
         onError: (error) => debugPrint('$_tag - 播放状态流错误: $error'),
@@ -103,6 +108,18 @@ class PlayerViewModel extends ChangeNotifier {
       ),
     );
 
+    // 错误事件
+    _subscriptions.add(
+      _eventHub.errors.listen(
+        (event) {
+          _errorMessage = '播放错误: ${event.operation}';
+          AppLogger.error('播放错误事件: ${event.operation}', event.error, event.stackTrace);
+          notifyListeners();
+        },
+        onError: (error) => debugPrint('$_tag - 错误事件流错误: $error'),
+      ),
+    );
+
     _initSubtitleStreams();
   }
 
@@ -128,9 +145,16 @@ class PlayerViewModel extends ChangeNotifier {
   }
 
   bool get isPlaying => _isPlaying;
+  bool get isBuffering => _isBuffering;
+  String? get errorMessage => _errorMessage;
   Duration? get position => _position;
   Duration? get duration => _duration;
   Subtitle? get currentSubtitle => _currentSubtitle;
+
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
 
   Future<void> playPause() async {
     if (_isPlaying) {

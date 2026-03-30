@@ -4,6 +4,8 @@ import '../models/playback_context.dart';
 import '../state/playback_state_manager.dart';
 import '../utils/playlist_builder.dart';
 import '../utils/audio_error_handler.dart';
+import '../events/playback_event_hub.dart';
+import '../events/playback_event.dart';
 import 'package:asmrapp/data/models/files/child.dart';
 import 'package:asmrapp/data/models/works/work.dart';
 
@@ -12,14 +14,17 @@ class PlaybackController {
   final AudioPlayer _player;
   final PlaybackStateManager _stateManager;
   final ConcatenatingAudioSource _playlist;
+  final PlaybackEventHub _eventHub;
 
   PlaybackController({
     required AudioPlayer player,
     required PlaybackStateManager stateManager,
     required ConcatenatingAudioSource playlist,
+    required PlaybackEventHub eventHub,
   }) : _player = player,
        _stateManager = stateManager,
-       _playlist = playlist;
+       _playlist = playlist,
+       _eventHub = eventHub;
 
   // 基础播放控制
   Future<void> play() => _player.play();
@@ -44,6 +49,7 @@ class PlaybackController {
       }
     } catch (e, stack) {
       AppLogger.error('切换下一曲失败', e, stack);
+      _eventHub.emit(PlaybackErrorEvent('next', e, stack));
       AudioErrorHandler.handleError(
         AudioErrorType.playback,
         '切换下一曲',
@@ -77,6 +83,7 @@ class PlaybackController {
       }
     } catch (e, stack) {
       AppLogger.error('切换上一曲失败', e, stack);
+      _eventHub.emit(PlaybackErrorEvent('previous', e, stack));
       AudioErrorHandler.handleError(
         AudioErrorType.playback,
         '切换上一曲',
@@ -87,39 +94,40 @@ class PlaybackController {
   }
 
   // 播放上下文设置
-  Future<void> setPlaybackContext(PlaybackContext context, {Duration? initialPosition}) async {
+  Future<void> setPlaybackContext(PlaybackContext originalContext, {Duration? initialPosition}) async {
     try {
-      AppLogger.debug('准备设置播放上下文: workId=${context.work.id}, file=${context.currentFile.title}');
-      AppLogger.debug('播放列表状态: 长度=${context.playlist.length}, 当前索引=${context.currentIndex}');
-      
+      AppLogger.debug('准备设置播放上下文: workId=${originalContext.work.id}, file=${originalContext.currentFile.title}');
+      AppLogger.debug('播放列表状态: 长度=${originalContext.playlist.length}, 当前索引=${originalContext.currentIndex}');
+
       // 验证上下文
       try {
-        context.validate();
+        originalContext.validate();
       } catch (e) {
         AppLogger.error('播放上下文验证失败', e);
         rethrow;
       }
-      
+
       // 1. 先停止当前播放
       AppLogger.debug('停止当前播放');
       await _player.stop();
-      
+
       // 2. 等待播放器就绪
       AppLogger.debug('暂停播放器');
       await _player.pause();
-      
+
       // 3. 更新上下文
       AppLogger.debug('更新播放上下文');
-      _stateManager.updateContext(context);
-      
+      _stateManager.updateContext(originalContext);
+
       // 4. 设置新的播放源
       AppLogger.debug('设置播放源: 初始位置=${initialPosition?.inMilliseconds}ms');
+      List<Child> loadedFiles;
       try {
-        await PlaylistBuilder.setPlaylistSource(
+        loadedFiles = await PlaylistBuilder.setPlaylistSource(
           player: _player,
           playlist: _playlist,
-          files: context.playlist,
-          initialIndex: context.currentIndex,
+          files: originalContext.playlist,
+          initialIndex: originalContext.currentIndex,
           initialPosition: initialPosition ?? Duration.zero,
         );
       } catch (e, stack) {
@@ -127,18 +135,35 @@ class PlaybackController {
         rethrow;
       }
 
+      // Update context with filtered playlist to keep indices consistent
+      var context = originalContext;
+      if (loadedFiles.length != originalContext.playlist.length) {
+        final currentFile = loadedFiles.contains(originalContext.currentFile)
+            ? originalContext.currentFile
+            : loadedFiles.first;
+        context = PlaybackContext.withFilteredPlaylist(
+          work: originalContext.work,
+          files: originalContext.files,
+          currentFile: currentFile,
+          playlist: loadedFiles,
+          playMode: originalContext.playMode,
+        );
+        _stateManager.updateContext(context);
+      }
+
       // 5. 等待播放器准备完成
       // 删掉，会导致播放器索引回到0
       // AppLogger.debug('等待播放器加载');
       // await _player.load();
-      
+
       // 6. 更新轨道信息
       AppLogger.debug('更新轨道信息');
       _updateTrackAndContext(context.currentFile, context.work);
-      
+
       AppLogger.debug('播放上下文设置完成');
     } catch (e, stack) {
       AppLogger.error('设置播放上下文失败', e, stack);
+      _eventHub.emit(PlaybackErrorEvent('setPlaybackContext', e, stack));
       AudioErrorHandler.handleError(
         AudioErrorType.context,
         '设置播放上下文',

@@ -7,6 +7,8 @@ import 'package:asmrapp/data/models/works/work.dart';
 import 'package:asmrapp/data/models/works/pagination.dart';
 import 'package:asmrapp/utils/logger.dart';
 import 'package:asmrapp/data/services/interceptors/auth_interceptor.dart';
+import 'package:asmrapp/data/services/interceptors/retry_interceptor.dart';
+import 'package:asmrapp/data/services/exceptions/network_exception.dart';
 import 'package:asmrapp/data/models/playlists_with_exist_statu/playlist.dart';
 import 'package:asmrapp/data/models/my_lists/my_playlists/my_playlists.dart';
 import 'package:asmrapp/data/models/tags/tag_item.dart';
@@ -33,7 +35,11 @@ class ApiService {
       : _settings = settings,
         _dio = Dio(BaseOptions(
           baseUrl: settings.serverUrl,
+          connectTimeout: const Duration(seconds: 15),
+          receiveTimeout: const Duration(seconds: 30),
+          sendTimeout: const Duration(seconds: 15),
         )) {
+    _dio.interceptors.add(RetryInterceptor(dio: _dio));
     _dio.interceptors.add(AuthInterceptor());
     // Listen for server URL changes
     _settings.addListener(_onSettingsChanged);
@@ -71,7 +77,7 @@ class ApiService {
       throw Exception('获取文件列表失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -117,7 +123,7 @@ class ApiService {
       throw Exception('获取作品列表失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -160,8 +166,12 @@ class ApiService {
       }
 
       throw Exception('搜索失败: ${response.statusCode}');
-    } catch (e) {
-      throw Exception('搜索请求失败: $e');
+    } on DioException catch (e) {
+      AppLogger.error('网络请求失败', e, e.stackTrace);
+      throw NetworkException.fromDioException(e);
+    } catch (e, stackTrace) {
+      AppLogger.error('解析数据失败', e, stackTrace);
+      throw Exception('解析数据失败: $e');
     }
   }
 
@@ -187,7 +197,7 @@ class ApiService {
       throw Exception('获取收藏列表失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -226,7 +236,7 @@ class ApiService {
       throw Exception('获取推荐列表失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -263,7 +273,7 @@ class ApiService {
       throw Exception('获取热门列表失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -314,7 +324,7 @@ class ApiService {
       throw Exception('获取相关推荐失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -343,7 +353,7 @@ class ApiService {
       throw Exception('获取收藏夹列表失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -365,7 +375,7 @@ class ApiService {
       );
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('添加到收藏夹失败', e, stackTrace);
       throw Exception('添加到收藏夹失败: $e');
@@ -387,7 +397,7 @@ class ApiService {
       );
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('从收藏夹移除失败', e, stackTrace);
       throw Exception('从收藏夹移除失败: $e');
@@ -408,8 +418,11 @@ class ApiService {
       if (response.statusCode != 200) {
         throw Exception('标记失败: ${response.statusCode}');
       }
-    } catch (e) {
-      AppLogger.error('更新标记状态失败', e);
+    } on DioException catch (e) {
+      AppLogger.error('网络请求失败', e, e.stackTrace);
+      throw NetworkException.fromDioException(e);
+    } catch (e, stackTrace) {
+      AppLogger.error('更新标记状态失败', e, stackTrace);
       rethrow;
     }
   }
@@ -444,7 +457,7 @@ class ApiService {
       throw Exception('获取默认标记目标收藏夹失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -470,7 +483,7 @@ class ApiService {
       throw Exception('获取播放列表失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -490,7 +503,7 @@ class ApiService {
       throw Exception('获取标签列表失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -510,7 +523,7 @@ class ApiService {
       throw Exception('获取社团列表失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -530,7 +543,7 @@ class ApiService {
       throw Exception('获取声优列表失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -549,7 +562,7 @@ class ApiService {
       throw Exception('获取作品详情失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');
@@ -585,7 +598,7 @@ class ApiService {
       throw Exception('获取播放列表作品失败: ${response.statusCode}');
     } on DioException catch (e) {
       AppLogger.error('网络请求失败', e, e.stackTrace);
-      throw Exception('网络请求失败: ${e.message}');
+      throw NetworkException.fromDioException(e);
     } catch (e, stackTrace) {
       AppLogger.error('解析数据失败', e, stackTrace);
       throw Exception('解析数据失败: $e');

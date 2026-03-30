@@ -21,6 +21,8 @@ class PlaybackStateManager {
   PlaybackContext? _currentContext;
 
   final List<StreamSubscription> _subscriptions = [];
+  Timer? _saveDebounceTimer;
+  static const _saveInterval = Duration(seconds: 5);
 
   PlaybackStateManager({
     required AudioPlayer player,
@@ -33,32 +35,47 @@ class PlaybackStateManager {
   // 初始化状态监听
   void initStateListeners() {
     // 监听播放器索引变化
-    _player.currentIndexStream.listen((index) {
-      if (index != null && _currentContext != null) {
-        final newFile = _currentContext!.playlist[index];
-        updateTrackAndContext(newFile, _currentContext!.work);
-      }
-    });
+    _subscriptions.add(
+      _player.currentIndexStream.listen((index) {
+        if (index != null && _currentContext != null) {
+          final newFile = _currentContext!.playlist[index];
+          updateTrackAndContext(newFile, _currentContext!.work);
+        }
+      }),
+    );
 
     // 直接监听 AudioPlayer 的原始流
-    _player.playerStateStream.listen((state) async {
-      final position = _player.position;
-      final duration = _player.duration;
-      
-      // 转换并发送到 EventHub
-      _eventHub.emit(PlaybackStateEvent(state, position, duration));
+    _subscriptions.add(
+      _player.playerStateStream.listen((state) async {
+        final position = _player.position;
+        final duration = _player.duration;
 
-      if (state.processingState == ProcessingState.completed) {
-        _onPlaybackCompleted();
-      }
+        // 转换并发送到 EventHub
+        _eventHub.emit(PlaybackStateEvent(state, position, duration));
+
+        if (state.processingState == ProcessingState.completed) {
+          _onPlaybackCompleted();
+        }
+        _debounceSave();
+      }),
+    );
+
+    _subscriptions.add(
+      _player.positionStream.listen((position) {
+        _eventHub.emit(PlaybackProgressEvent(
+          position,
+          _player.bufferedPosition
+        ));
+      }),
+    );
+
+    _setupEventListeners();
+  }
+
+  void _debounceSave() {
+    _saveDebounceTimer?.cancel();
+    _saveDebounceTimer = Timer(_saveInterval, () {
       saveState();
-    });
-
-    _player.positionStream.listen((position) {
-      _eventHub.emit(PlaybackProgressEvent(
-        position,
-        _player.bufferedPosition
-      ));
     });
   }
 
@@ -87,6 +104,7 @@ class PlaybackStateManager {
 
   void _onPlaybackCompleted() {
     if (_currentContext == null) return;
+    saveState(); // Immediate save on completion
     _eventHub.emit(PlaybackCompletedEvent(_currentContext!));
   }
 
@@ -154,6 +172,7 @@ class PlaybackStateManager {
   }
 
   void dispose() {
+    _saveDebounceTimer?.cancel();
     for (var subscription in _subscriptions) {
       subscription.cancel();
     }

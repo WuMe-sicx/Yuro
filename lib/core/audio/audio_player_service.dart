@@ -20,6 +20,10 @@ class AudioPlayerService implements IAudioPlayerService {
   late final PlaybackController _playbackController;
   final PlaybackEventHub _eventHub;
   final IPlaybackStateRepository _stateRepository;
+  final Completer<void> _initCompleter = Completer<void>();
+
+  /// Await this before calling any public method to ensure init is complete
+  Future<void> get ready => _initCompleter.future;
 
   AudioPlayerService._internal({
     required PlaybackEventHub eventHub,
@@ -61,6 +65,7 @@ class AudioPlayerService implements IAudioPlayerService {
         player: _player,
         stateManager: _stateManager,
         playlist: _playlist,
+        eventHub: _eventHub,
       );
 
       final session = await AudioSession.instance;
@@ -69,7 +74,9 @@ class AudioPlayerService implements IAudioPlayerService {
 
       _stateManager.initStateListeners();
       await restorePlaybackState();
+      _initCompleter.complete();
     } catch (e, stack) {
+      _initCompleter.completeError(e, stack);
       AudioErrorHandler.handleError(
         AudioErrorType.init,
         '音频播放器初始化',
@@ -86,29 +93,46 @@ class AudioPlayerService implements IAudioPlayerService {
 
   // 基础播放控制
   @override
-  Future<void> pause() => _playbackController.pause();
+  Future<void> pause() async {
+    await ready;
+    await _playbackController.pause();
+  }
 
   @override
-  Future<void> resume() => _playbackController.play();
+  Future<void> resume() async {
+    await ready;
+    await _playbackController.play();
+  }
 
   @override
   Future<void> stop() async {
+    await ready;
     await _playbackController.stop();
     _stateManager.clearState();
   }
 
   @override
-  Future<void> seek(Duration position) => _playbackController.seek(position);
+  Future<void> seek(Duration position) async {
+    await ready;
+    await _playbackController.seek(position);
+  }
 
   @override
-  Future<void> previous() => _playbackController.previous();
+  Future<void> previous() async {
+    await ready;
+    await _playbackController.previous();
+  }
 
   @override
-  Future<void> next() => _playbackController.next();
+  Future<void> next() async {
+    await ready;
+    await _playbackController.next();
+  }
 
   // 上下文管理
   @override
   Future<void> playWithContext(PlaybackContext context) async {
+    await ready;
     await _playbackController.setPlaybackContext(context);
     // 添加自动播放
     await resume();

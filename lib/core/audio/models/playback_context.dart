@@ -98,6 +98,26 @@ class PlaybackContext {
     return playlist;
   }
 
+  /// Create a context with a pre-filtered playlist (e.g. after skipping failed audio sources).
+  /// `playlist` must be a subset of the original and `currentFile` must be in it.
+  factory PlaybackContext.withFilteredPlaylist({
+    required Work work,
+    required Files files,
+    required Child currentFile,
+    required List<Child> playlist,
+    PlayMode playMode = PlayMode.sequence,
+  }) {
+    final currentIndex = playlist.indexWhere((f) => f.title == currentFile.title);
+    return PlaybackContext._(
+      work: work,
+      files: files,
+      currentFile: currentFile,
+      playlist: playlist,
+      currentIndex: currentIndex >= 0 ? currentIndex : 0,
+      playMode: playMode,
+    );
+  }
+
   // 便捷方法：检查是否有下一曲
   bool get hasNext => currentIndex < playlist.length - 1;
 
