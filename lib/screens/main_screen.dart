@@ -2,7 +2,7 @@ import 'package:asmrapp/core/theme/app_animations.dart';
 import 'package:asmrapp/screens/contents/favorites_content.dart';
 import 'package:flutter/material.dart';
 import 'package:asmrapp/widgets/mini_player/mini_player.dart';
-import 'package:asmrapp/widgets/drawer_menu.dart';
+import 'package:asmrapp/widgets/sidebar/sidebar_menu.dart';
 import 'package:asmrapp/screens/contents/home_content.dart';
 import 'package:asmrapp/screens/contents/recommend_content.dart';
 import 'package:asmrapp/screens/contents/popular_content.dart';
@@ -149,7 +149,7 @@ class _MainScreenState extends State<MainScreen> {
                 ),
               ],
             ),
-            drawer: const DrawerMenu(),
+            drawer: const SidebarMenu(),
             body: PageView(
               controller: _pageController,
               physics: const ClampingScrollPhysics(),

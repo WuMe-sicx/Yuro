@@ -1,7 +1,7 @@
 import 'package:asmrapp/core/theme/app_animations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:asmrapp/widgets/drawer_menu.dart';
+import 'package:asmrapp/widgets/sidebar/sidebar_menu.dart';
 import 'package:asmrapp/presentation/viewmodels/auth_viewmodel.dart';
 import 'package:asmrapp/presentation/viewmodels/favorites_viewmodel.dart';
 import 'package:asmrapp/presentation/layouts/work_layout_strategy.dart';
@@ -58,7 +58,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         appBar: AppBar(
           title: const Text('我的收藏'),
         ),
-        drawer: const DrawerMenu(),
+        drawer: const SidebarMenu(),
         body: Consumer<FavoritesViewModel>(
           builder: (context, viewModel, child) {
             return Column(
