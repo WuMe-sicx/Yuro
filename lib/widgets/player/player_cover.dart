@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:asmrapp/widgets/common/skeleton_pulse.dart';
 
 class PlayerCover extends StatelessWidget {
   final String? coverUrl;
@@ -37,11 +37,9 @@ class PlayerCover extends StatelessWidget {
               ? CachedNetworkImage(
                   imageUrl: coverUrl!,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => Shimmer.fromColors(
-                    baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    highlightColor: Theme.of(context).colorScheme.surface,
+                  placeholder: (context, url) => SkeletonPulse(
                     child: Container(
-                      color: Colors.white,
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
                     ),
                   ),
                   errorWidget: (context, url, error) => Container(

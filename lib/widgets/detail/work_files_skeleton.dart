@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:asmrapp/widgets/common/skeleton_pulse.dart';
 
 class WorkFilesSkeleton extends StatelessWidget {
   const WorkFilesSkeleton({super.key});
 
-  Widget _buildShimmerItem() {
+  Widget _buildShimmerItem(BuildContext context) {
+    final skeletonColor = Theme.of(context).colorScheme.surfaceContainerHighest;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -14,7 +15,7 @@ class WorkFilesSkeleton extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: skeletonColor,
               borderRadius: BorderRadius.circular(4),
             ),
           ),
@@ -28,7 +29,7 @@ class WorkFilesSkeleton extends StatelessWidget {
                   height: 14,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: skeletonColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -37,7 +38,7 @@ class WorkFilesSkeleton extends StatelessWidget {
                   height: 10,
                   width: 100,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: skeletonColor,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -53,9 +54,7 @@ class WorkFilesSkeleton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.all(8),
-      child: Shimmer.fromColors(
-        baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-        highlightColor: Theme.of(context).colorScheme.surface,
+      child: SkeletonPulse(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -66,7 +65,7 @@ class WorkFilesSkeleton extends StatelessWidget {
                 height: 24,
                 width: 120,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -76,8 +75,8 @@ class WorkFilesSkeleton extends StatelessWidget {
             ListView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: 6, // 显示6个占位项
-              itemBuilder: (context, index) => _buildShimmerItem(),
+              itemCount: 6,
+              itemBuilder: (context, index) => _buildShimmerItem(context),
             ),
           ],
         ),

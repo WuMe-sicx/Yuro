@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:asmrapp/widgets/common/skeleton_pulse.dart';
 
 class MiniPlayerCover extends StatelessWidget {
   final String? coverUrl;
@@ -44,14 +44,12 @@ class MiniPlayerCover extends StatelessWidget {
   }
 
   Widget _buildPlaceholder(BuildContext context) {
-    return Shimmer.fromColors(
-      baseColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-      highlightColor: Theme.of(context).colorScheme.surface,
+    return SkeletonPulse(
       child: Container(
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(4),
         ),
       ),

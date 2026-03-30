@@ -56,7 +56,7 @@ class WorkInfoSection extends StatelessWidget {
           const SizedBox(height: 8),
           WorkTagsPanel(work: work),
           const SizedBox(height: 4),
-          const Spacer(),
+          const SizedBox(height: 8),
           WorkFooter(work: work),
         ],
       ),

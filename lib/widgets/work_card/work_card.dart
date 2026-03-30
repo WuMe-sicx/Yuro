@@ -27,15 +27,14 @@ class WorkCard extends StatelessWidget {
         onTap: onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             WorkCoverImage(
               imageUrl: work.mainCoverUrl ?? '',
               workId: work.id ?? 0,
               sourceId: work.sourceId ?? '',
             ),
-            Expanded(
-              child: WorkInfoSection(work: work),
-            ),
+            WorkInfoSection(work: work),
           ],
         ),
       ),

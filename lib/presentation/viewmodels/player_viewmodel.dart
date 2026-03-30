@@ -12,6 +12,7 @@ import 'package:asmrapp/core/audio/events/playback_event_hub.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:asmrapp/core/subtitle/subtitle_import_service.dart';
+import 'package:rxdart/rxdart.dart';
 
 class PlayerViewModel extends ChangeNotifier {
   final IAudioPlayerService _audioService;
@@ -45,12 +46,12 @@ class PlayerViewModel extends ChangeNotifier {
   }
 
   void _initStreams() {
-    // 播放状态事件
+    // 播放状态事件 - 状态变化时通知（播放/暂停/缓冲等）
     _subscriptions.add(
       _eventHub.playbackState.listen(
         (event) {
           _isPlaying = event.state.playing;
-          _position = event.position;
+          _position = event.position;  // fallback position for pause/resume
           _duration = event.duration;
           _isBuffering = event.state.processingState == ProcessingState.buffering ||
                          event.state.processingState == ProcessingState.loading;
@@ -70,17 +71,26 @@ class PlayerViewModel extends ChangeNotifier {
       ),
     );
 
-    // 播放进度事件
+    // 播放进度 - UI更新路径：节流到200ms，减少rebuild频率
     _subscriptions.add(
-      _eventHub.playbackProgress.listen(
+      _eventHub.playbackProgress
+          .throttleTime(const Duration(milliseconds: 200))
+          .listen(
         (event) {
           _position = event.position;
-          if (_position != null) {
-            _subtitleService.updatePosition(_position!);
-          }
           notifyListeners();
         },
         onError: (error) => debugPrint('$_tag - 播放进度流错误: $error'),
+      ),
+    );
+
+    // 播放进度 - 字幕同步路径：保持全精度，不触发rebuild
+    _subscriptions.add(
+      _eventHub.playbackProgress.listen(
+        (event) {
+          _subtitleService.updatePosition(event.position);
+        },
+        onError: (error) => debugPrint('$_tag - 字幕同步流错误: $error'),
       ),
     );
 
@@ -89,7 +99,6 @@ class PlayerViewModel extends ChangeNotifier {
       _eventHub.contextChange.listen(
         (event) async {
           await _loadSubtitleIfAvailable(event.context);
-          // 如果有保存的位置，在字幕加载完成后更新位置
           if (_position != null) {
             _subtitleService.updatePosition(_position!);
           }
@@ -98,7 +107,7 @@ class PlayerViewModel extends ChangeNotifier {
       ),
     );
 
-    // 使用新添加的 initialState 流
+    // 初始状态流
     _subscriptions.add(
       _eventHub.initialState.listen(
         (event) {

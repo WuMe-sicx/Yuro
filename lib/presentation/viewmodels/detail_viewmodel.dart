@@ -13,6 +13,7 @@ import 'package:asmrapp/widgets/detail/playlist_selection_dialog.dart';
 import 'package:asmrapp/data/models/mark_status.dart';
 import 'package:asmrapp/widgets/detail/mark_selection_dialog.dart';
 import 'package:asmrapp/data/models/works/work_info.dart';
+import 'package:asmrapp/widgets/detail/work_folder_item.dart';
 import 'package:dio/dio.dart';
 
 class DetailViewModel extends ChangeNotifier {
@@ -95,11 +96,45 @@ class DetailViewModel extends ChangeNotifier {
     }
   }
 
-  Future<void> loadWorkInfo() async {
-    if (_isLoadingInfo) return;
+  /// Batch-load files and work info with minimal notifyListeners calls.
+  /// Called once from the screen instead of separate loadFiles + loadWorkInfo.
+  Future<void> loadInitialData() async {
+    _isLoading = true;
     _isLoadingInfo = true;
-    notifyListeners();
+    _error = null;
+    notifyListeners(); // Single notify for "loading started"
 
+    // Run both fetches concurrently
+    await Future.wait([
+      _loadFilesInternal(),
+      _loadWorkInfoInternal(),
+    ]);
+
+    if (!_disposed) {
+      notifyListeners(); // Single notify for "loading complete"
+    }
+  }
+
+  Future<void> _loadFilesInternal() async {
+    try {
+      AppLogger.info('开始加载作品文件: ${work.id}');
+      _files = await _apiService.getWorkFiles(
+        work.id.toString(),
+        cancelToken: _cancelToken,
+      );
+      WorkFolderItem.resetExpandState(); // Reset on new data load, not on every build
+      AppLogger.info('文件加载成功: ${work.id}');
+    } catch (e) {
+      if (e is! DioException || e.type != DioExceptionType.cancel) {
+        AppLogger.info('加载文件失败');
+        _error = e.toString();
+      }
+    } finally {
+      _isLoading = false;
+    }
+  }
+
+  Future<void> _loadWorkInfoInternal() async {
     try {
       final workId = _extractNumericId(work.sourceId) ?? work.id.toString();
       _workInfo = await _apiService.getWorkInfo(workId, cancelToken: _cancelToken);
@@ -109,38 +144,25 @@ class DetailViewModel extends ChangeNotifier {
         AppLogger.error('加载作品详情失败', e);
       }
     } finally {
-      if (!_disposed) {
-        _isLoadingInfo = false;
-        notifyListeners();
-      }
+      _isLoadingInfo = false;
     }
+  }
+
+  Future<void> loadWorkInfo() async {
+    if (_isLoadingInfo) return;
+    _isLoadingInfo = true;
+    notifyListeners();
+    await _loadWorkInfoInternal();
+    if (!_disposed) notifyListeners();
   }
 
   Future<void> loadFiles() async {
     if (_isLoading) return;
-
     _isLoading = true;
     _error = null;
     notifyListeners();
-
-    try {
-      AppLogger.info('开始加载作品文件: ${work.id}');
-      _files = await _apiService.getWorkFiles(
-        work.id.toString(),
-        cancelToken: _cancelToken,
-      );
-      AppLogger.info('文件加载成功: ${work.id}');
-    } catch (e) {
-      if (e is! DioException || e.type != DioExceptionType.cancel) {
-        AppLogger.info('加载文件失败，用户取消请求');
-        _error = e.toString();
-      }
-    } finally {
-      if (!_disposed) {
-        _isLoading = false;
-        notifyListeners();
-      }
-    }
+    await _loadFilesInternal();
+    if (!_disposed) notifyListeners();
   }
 
   Future<void> playFile(Child file, BuildContext context) async {

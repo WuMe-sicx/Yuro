@@ -40,16 +40,30 @@ class _PlayerLyricViewState extends State<PlayerLyricView> {
   bool _allowAutoScroll = true;
   Timer? _autoScrollDebounceTimer;
 
+  StreamSubscription? _subtitleSubscription;
+
   @override
   void initState() {
     super.initState();
+    _subtitleSubscription = _subtitleService.currentSubtitleWithStateStream.listen((current) {
+      if (current != null && _itemScrollController.isAttached) {
+        _scrollToCurrentLyric(current);
+      }
+    });
+    // Handle initial positioning after first frame when controller is attached
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final current = _subtitleService.currentSubtitleWithState;
+      if (current != null && _itemScrollController.isAttached) {
+        _scrollToCurrentLyric(current);
+      }
+    });
   }
 
   @override
   void dispose() {
-    // 清理所有计时器
-    _scrollDebounceTimer?.cancel();    // 视图切换计时器
-    _autoScrollDebounceTimer?.cancel(); // 自动滚动计时器
+    _subtitleSubscription?.cancel();
+    _scrollDebounceTimer?.cancel();
+    _autoScrollDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -99,11 +113,7 @@ class _PlayerLyricViewState extends State<PlayerLyricView> {
           );
         }
 
-        if (currentSubtitle != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _scrollToCurrentLyric(currentSubtitle);
-          });
-        }
+        // Scrolling is handled by the stream listener in initState - no side effects here
 
         return NotificationListener<ScrollNotification>(
           onNotification: (notification) {
@@ -131,13 +141,10 @@ class _PlayerLyricViewState extends State<PlayerLyricView> {
               _autoScrollDebounceTimer?.cancel();
               _autoScrollDebounceTimer = Timer(const Duration(milliseconds: 3000), () {
                 if (mounted) {
-                  setState(() {
-                    _allowAutoScroll = true;
-                    // 恢复时立即滚动到当前播放位置
-                    if (_subtitleService.currentSubtitleWithState != null) {
-                      _scrollToCurrentLyric(_subtitleService.currentSubtitleWithState!);
-                    }
-                  });
+                  _allowAutoScroll = true;
+                  if (_subtitleService.currentSubtitleWithState != null) {
+                    _scrollToCurrentLyric(_subtitleService.currentSubtitleWithState!);
+                  }
                 }
               });
             }

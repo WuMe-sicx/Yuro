@@ -16,9 +16,6 @@ class WorkFilesList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 重置文件夹展开状态
-    WorkFolderItem.resetExpandState();
-    
     return Card(
       margin: const EdgeInsets.all(8),
       child: Column(

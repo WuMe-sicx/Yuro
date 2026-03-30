@@ -25,7 +25,7 @@ class DetailScreen extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => DetailViewModel(
         work: work,
-      )..loadFiles()..loadWorkInfo(),
+      )..loadInitialData(),
       child: Scaffold(
         appBar: AppBar(
           title: Text(work.sourceId ?? ''),
