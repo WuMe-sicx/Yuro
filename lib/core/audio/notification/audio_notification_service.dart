@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:asmrapp/core/audio/events/playback_event_hub.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:asmrapp/utils/logger.dart';
@@ -19,6 +20,12 @@ class AudioNotificationService {
 
   Future<void> init() async {
     try {
+      // Request notification permission (Android 13+)
+      final status = await Permission.notification.status;
+      if (!status.isGranted) {
+        await Permission.notification.request();
+      }
+
       _audioHandler = await AudioService.init(
         builder: () => AudioPlayerHandler(_player, _eventHub),
         config: const AudioServiceConfig(
