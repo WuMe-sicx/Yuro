@@ -18,7 +18,7 @@ class PlayerViewModel extends ChangeNotifier {
   final IAudioPlayerService _audioService;
   final PlaybackEventHub _eventHub;
   final ISubtitleService _subtitleService;
-  final _subtitleLoader = SubtitleLoader();
+  final _subtitleLoader = GetIt.I<SubtitleLoader>();
   final _importService = GetIt.I<SubtitleImportService>();
 
   bool _isPlaying = false;

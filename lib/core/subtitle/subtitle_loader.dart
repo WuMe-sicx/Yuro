@@ -9,7 +9,9 @@ import 'package:asmrapp/core/subtitle/parsers/subtitle_parser_factory.dart';
 import 'package:asmrapp/core/subtitle/cache/subtitle_cache_manager.dart';
 
 class SubtitleLoader {
-  final _dio = Dio();
+  final Dio _dio;
+
+  SubtitleLoader({required Dio dio}) : _dio = dio;
 
   // 查找字幕文件
   Child? findSubtitleFile(Child audioFile, Files files) {

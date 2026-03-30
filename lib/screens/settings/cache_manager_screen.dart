@@ -55,7 +55,20 @@ class CacheManagerScreen extends StatelessWidget {
                   ),
                 ),
                 const Divider(),
-                
+
+                // 图片缓存
+                ListTile(
+                  title: const Text('图片缓存'),
+                  subtitle: Text(viewModel.imageCacheSizeFormatted),
+                  trailing: TextButton(
+                    onPressed: viewModel.isLoading
+                      ? null
+                      : () => viewModel.clearImageCache(),
+                    child: const Text('清理'),
+                  ),
+                ),
+                const Divider(),
+
                 // 总缓存大小
                 ListTile(
                   title: const Text('总缓存大小'),
@@ -73,8 +86,8 @@ class CacheManagerScreen extends StatelessWidget {
                 const ListTile(
                   title: Text('缓存说明'),
                   subtitle: Text(
-                    '缓存用于存储最近播放的音频文件和字幕文件，以提高再次播放时的加载速度。'
-                    '系统会自动清理过期和超量的缓存。'
+                    '缓存用于存储最近播放的音频文件、字幕文件和图片，以提高加载速度。'
+                    '清理全部会同时清除所有类型的缓存数据。'
                   ),
                 ),
               ],

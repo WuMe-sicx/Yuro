@@ -13,10 +13,10 @@ class AudioCacheManager {
 
   /// 创建音频源
   /// 内部处理缓存逻辑,对外只返回 AudioSource
-  static Future<AudioSource> createAudioSource(String url) async {
+  static Future<AudioSource> createAudioSource(String url, {String? hash}) async {
     try {
-      final cacheFile = await _getCacheFile(url);
-      final fileName = _generateFileName(url);
+      final cacheFile = await _getCacheFile(url, hash: hash);
+      final fileName = _generateFileName(url, hash: hash);
       AppLogger.debug('准备创建音频源 - URL: $url, 缓存文件名: $fileName');
       
       // 检查缓存文件是否存在且有效
@@ -164,14 +164,18 @@ class AudioCacheManager {
   }
 
   /// 获取缓存文件
-  static Future<File> _getCacheFile(String url) async {
+  static Future<File> _getCacheFile(String url, {String? hash}) async {
     final cacheDir = await _getCacheDir();
-    final fileName = _generateFileName(url);
+    final fileName = _generateFileName(url, hash: hash);
     return File('${cacheDir.path}/$fileName');
   }
 
   /// 生成缓存文件名
-  static String _generateFileName(String url) {
+  static String _generateFileName(String url, {String? hash}) {
+    if (hash != null && hash.isNotEmpty) {
+      // Sanitize hash to ensure filesystem safety
+      return hash.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
+    }
     final bytes = utf8.encode(url);
     final digest = md5.convert(bytes);
     return digest.toString();
@@ -179,11 +183,25 @@ class AudioCacheManager {
 
   /// 获取缓存目录
   static Future<Directory> _getCacheDir() async {
-    final cacheDir = await getTemporaryDirectory();
-    final audioCacheDir = Directory('${cacheDir.path}/audio_cache');
+    final appDir = await getApplicationSupportDirectory();
+    final audioCacheDir = Directory('${appDir.path}/audio_cache');
     if (!await audioCacheDir.exists()) {
       await audioCacheDir.create(recursive: true);
     }
     return audioCacheDir;
+  }
+
+  /// One-time cleanup of legacy temp cache directory
+  static Future<void> cleanLegacyCache() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final legacyDir = Directory('${tempDir.path}/audio_cache');
+      if (await legacyDir.exists()) {
+        await legacyDir.delete(recursive: true);
+        AppLogger.info('已清理旧版临时缓存目录');
+      }
+    } catch (e) {
+      AppLogger.warning('清理旧版缓存失败: $e');
+    }
   }
 }

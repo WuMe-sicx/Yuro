@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:asmrapp/widgets/common/skeleton_pulse.dart';
+import 'package:asmrapp/core/image/cache/image_cache_manager.dart';
 
 class PlayerCover extends StatelessWidget {
   final String? coverUrl;
@@ -37,6 +38,7 @@ class PlayerCover extends StatelessWidget {
               ? CachedNetworkImage(
                   imageUrl: coverUrl!,
                   fit: BoxFit.cover,
+                  cacheManager: ImageCacheManager.instance,
                   placeholder: (context, url) => SkeletonPulse(
                     child: Container(
                       color: Theme.of(context).colorScheme.surfaceContainerHighest,

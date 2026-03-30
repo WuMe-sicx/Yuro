@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:asmrapp/common/constants/strings.dart';
+import 'package:asmrapp/core/audio/cache/audio_cache_manager.dart';
+import 'package:asmrapp/core/cache/cache_lifecycle_manager.dart';
 import 'package:asmrapp/presentation/viewmodels/auth_viewmodel.dart';
 import 'core/di/service_locator.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +15,11 @@ void main() async {
 
   // 初始化服务定位器
   await setupServiceLocator();
+
+  // Initialize cache lifecycle manager (handles startup + resume cleanup)
+  CacheLifecycleManager().initialize();
+  // One-time legacy cache migration
+  AudioCacheManager.cleanLegacyCache();
 
   runApp(const MyApp());
 }

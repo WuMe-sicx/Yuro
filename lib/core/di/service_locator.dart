@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:asmrapp/data/services/interceptors/retry_interceptor.dart';
+import 'package:asmrapp/data/services/interceptors/auth_interceptor.dart';
 import 'package:asmrapp/core/platform/dummy_lyric_overlay_controller.dart';
 import 'package:get_it/get_it.dart';
 import '../audio/i_audio_player_service.dart';
@@ -128,7 +131,12 @@ Future<void> setupServiceLocator() async {
 }
 
 Future<void> setupSubtitleServices() async {
-  getIt.registerLazySingleton<SubtitleLoader>(() => SubtitleLoader());
+  getIt.registerLazySingleton<SubtitleLoader>(() {
+    final dio = Dio();
+    dio.interceptors.add(RetryInterceptor(dio: dio));
+    dio.interceptors.add(AuthInterceptor());
+    return SubtitleLoader(dio: dio);
+  });
   if (Platform.isAndroid) {
     getIt.registerLazySingleton<ILyricOverlayController>(() => LyricOverlayController());
   } else {

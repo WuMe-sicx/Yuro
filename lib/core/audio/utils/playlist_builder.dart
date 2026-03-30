@@ -12,7 +12,10 @@ class PlaylistBuilder {
 
     for (var i = 0; i < files.length; i++) {
       try {
-        final source = await AudioCacheManager.createAudioSource(files[i].mediaDownloadUrl!);
+        final source = await AudioCacheManager.createAudioSource(
+          files[i].mediaDownloadUrl!,
+          hash: files[i].hash,
+        );
         sources.add(source);
         originalIndices.add(i);
       } catch (e) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:asmrapp/core/image/cache/image_cache_manager.dart';
 
 class WorkCover extends StatelessWidget {
   final String imageUrl;
@@ -29,6 +30,7 @@ class WorkCover extends StatelessWidget {
             fit: BoxFit.cover,
             width: double.infinity,
             height: double.infinity,
+            cacheManager: ImageCacheManager.instance,
           ),
         ),
         Positioned(

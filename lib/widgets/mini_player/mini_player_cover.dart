@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:asmrapp/widgets/common/skeleton_pulse.dart';
+import 'package:asmrapp/core/image/cache/image_cache_manager.dart';
 
 class MiniPlayerCover extends StatelessWidget {
   final String? coverUrl;
@@ -25,6 +26,7 @@ class MiniPlayerCover extends StatelessWidget {
         width: size,
         height: size,
         fit: BoxFit.cover,
+        cacheManager: ImageCacheManager.instance,
         placeholder: (context, url) => _buildPlaceholder(context),
         errorWidget: (context, url, error) => _buildErrorWidget(),
       ),

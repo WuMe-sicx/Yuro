@@ -20,9 +20,18 @@ class SubtitleCacheManager {
   /// 获取缓存的字幕内容
   static Future<String?> getCachedContent(String url) async {
     try {
-      final file = await instance.getSingleFile(url);
-      AppLogger.debug('使用字幕缓存: $url');
-      return await file.readAsString();
+      final fileInfo = await instance.getFileFromCache(url);
+      if (fileInfo != null) {
+        // Check if cache entry has expired
+        if (fileInfo.validTill.isBefore(DateTime.now())) {
+          AppLogger.debug('字幕缓存已过期: $url');
+          await instance.removeFile(url);
+          return null;
+        }
+        AppLogger.debug('使用字幕缓存: $url');
+        return await fileInfo.file.readAsString();
+      }
+      return null;
     } catch (e) {
       AppLogger.error('读取字幕缓存失败', e);
       return null;
