@@ -34,6 +34,8 @@ class FavoritesViewModel extends ChangeNotifier {
 
     if (!_authViewModel.isLoggedIn) {
       _error = '请先登录';
+      _works = [];
+      _pagination = null;
       notifyListeners();
       return;
     }
